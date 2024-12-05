@@ -1,0 +1,70 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# --------------------------------------------------------------------------
+# Step 1: Load the data
+# --------------------------------------------------------------------------
+df = pd.read_csv("ml_train.csv")  # Replace with your data file
+
+# --------------------------------------------------------------------------
+# Step 2: Basic Data Cleaning
+# --------------------------------------------------------------------------
+# Check for missing values
+missing_values = df.isnull().sum()
+print("Missing values per column:\n", missing_values)
+
+# Drop columns with more than 50% missing values
+threshold = len(df) * 0.5
+df = df.dropna(thresh=threshold, axis=1)
+
+# Impute remaining missing values (simple mean imputation as example)
+numeric_cols = df.select_dtypes(include=[np.number]).columns
+for col in numeric_cols:
+    df[col].fillna(df[col].mean(), inplace=True)
+
+# If needed, encode categorical variables here
+# Example (if Gender is categorical strings 'M'/'F'):
+# df['Gender'] = df['Gender'].map({'M': 1, 'F': 0})
+
+# --------------------------------------------------------------------------
+# Step 3: Compute Correlation Matrix
+# --------------------------------------------------------------------------
+df_numeric = df.select_dtypes(include=[np.number])
+corr = df_numeric.corr()
+
+# --------------------------------------------------------------------------
+# Step 4: Identify Highly Correlated Features
+# --------------------------------------------------------------------------
+# Define a threshold for 'high' correlation
+high_corr_threshold = 0.8
+
+# We will look at the upper triangle of the correlation matrix to avoid duplicates
+mask = np.triu(np.ones_like(corr, dtype=bool))
+corr_tri = corr.mask(mask)
+
+# Find pairs with correlation above the threshold (either positively or negatively)
+high_corr_pairs = []
+for col in corr_tri.columns:
+    for row in corr_tri.index:
+        val = corr_tri.loc[row, col]
+        if pd.notnull(val) and (abs(val) > high_corr_threshold):
+            high_corr_pairs.append((row, col, val))
+
+# Print out the pairs
+if high_corr_pairs:
+    print("\nHighly Correlated Feature Pairs (Threshold = {}):".format(high_corr_threshold))
+    for pair in high_corr_pairs:
+        print(f"{pair[0]} and {pair[1]}: {pair[2]:.2f}")
+else:
+    print("\nNo feature pairs found above the correlation threshold.")
+
+# --------------------------------------------------------------------------
+# Step 5: Plot the Heatmap
+# --------------------------------------------------------------------------
+plt.figure(figsize=(12, 10))
+sns.heatmap(corr, annot=False, cmap='YlOrBr',fmt=".2f", square=True, cbar_kws={"shrink": .8})
+plt.title('Feature Correlation Heatmap')
+plt.tight_layout()
+plt.show()
