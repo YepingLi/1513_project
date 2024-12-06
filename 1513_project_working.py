@@ -68,7 +68,7 @@ def train_model(model, optimizer, train_loader, val_loader, test_loader):
     training_losses = []
     validation_losses = []
     validation_accuracy = []
-    for epoch in range(20): 
+    for epoch in range(35): 
         running_loss = 0.0
         correct_predicts = 0
         total_predicts = 0
@@ -94,10 +94,11 @@ def train_model(model, optimizer, train_loader, val_loader, test_loader):
         total_predicts = 0
         #Compute the valudation accuracy and loss
         with torch.no_grad():
+            criterion_val = torch.nn.CrossEntropyLoss()
             for data in val_loader:
                 inputs, labels = data
                 outputs = model(inputs)
-                loss = criterion(outputs, labels)
+                loss = criterion_val(outputs, labels)
                 running_val_loss += loss.item()
                 _, predicted = torch.max(outputs.data, 1)
                 total_predicts += labels.size(0)
@@ -109,12 +110,32 @@ def train_model(model, optimizer, train_loader, val_loader, test_loader):
     print("Training done")
     return model, train_accuracy, training_losses, validation_losses, validation_accuracy
 
+def test(model, test_loader):
+    correct_predicts = 0
+    total_predicts = 0
+    running_test_loss = 0.0
+    with torch.no_grad():
+        criterion_val = torch.nn.CrossEntropyLoss()
+        for data in test_loader:
+            inputs, labels = data
+            outputs = model(inputs)
+            loss = criterion_val(outputs, labels)
+            running_test_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total_predicts += labels.size(0)
+            correct_predicts += (predicted == labels).sum().item()
+    acc = 100* correct_predicts / total_predicts
+    loss = running_test_loss / len(val_loader)
+    print("Test result display")
+    print('test loss: %.3f | test accuracy: %.2f%%' % (loss, acc))
+           
+        
 
 model = NeuralNetwork()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 model, train_accuracy, training_losses, validation_losses, validation_accuracy = train_model(model, optimizer, train_loader, val_loader, test_loader)
-print(train_data['target'].value_counts())
-
+#print(train_data['target'].value_counts())
+test(model, test_loader)
 plt.figure()
 plt.title('losses vs number of epoch')
 x = range(1,len(training_losses)+1)
